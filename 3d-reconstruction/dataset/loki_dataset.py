@@ -95,11 +95,12 @@ class LOKIDataset(Dataset):
 
 
 # Example usage of the custom dataset and dataloader
-root_dir = "../Datasets/loki_data/"
+root_dir = "../../LOKI/"
 keys = ["odometry", "images"]
 
 loki_dataset = LOKIDataset(root_dir=root_dir, keys=keys, transform=None)
 # sample = loki_dataset.__getitem__(0)
 sample = loki_dataset[0]
+print(len(sample))
 
 print("Loaded Successfully")
