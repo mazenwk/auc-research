@@ -7,7 +7,15 @@ import pandas as pd
 from PIL import Image
 from glob import glob
 from torch.utils.data import Dataset
+from enum import Enum
 
+class Keys(Enum):
+    odometry = 1
+    labels2d = 2
+    labels3d = 3
+    pointcloud = 4
+    images = 5
+    map = 6
 
 class LOKIDataset(Dataset):
     def __init__(self, root_dir, keys=None, transform=None):
@@ -22,7 +30,7 @@ class LOKIDataset(Dataset):
         self.keys = (
             keys
             if keys is not None
-            else ["odometry", "labels_2d", "labels_3d", "pointcloud", "images", "map"]
+            else [key.name for key in Keys]
         )
         self.transform = transform
         self.scenarios = [
@@ -39,21 +47,21 @@ class LOKIDataset(Dataset):
         scenario_path = self.scenarios[idx]
         sample = {}
 
-        if "odometry" in self.keys:
-            sample["odometry"] = self.load_odometry(scenario_path)
-        if "labels_2d" in self.keys:
-            sample["labels_2d"] = self.load_labels_2d(scenario_path)
-        if "labels_3d" in self.keys:
-            sample["labels_3d"] = self.load_labels_3d(scenario_path)
-        if "pointcloud" in self.keys:
-            sample["pointcloud"] = self.load_pointcloud(scenario_path)
-        if "images" in self.keys:
-            sample["images"] = self.load_images(scenario_path)
-        if "map" in self.keys:
-            sample["map"] = self.load_map(scenario_path)
+        if Keys.odometry in self.keys:
+            sample[Keys.odometry.name] = self.load_odometry(scenario_path)
+        if Keys.labels2d in self.keys:
+            sample[Keys.labels2d.name] = self.load_labels_2d(scenario_path)
+        if Keys.labels3d in self.keys:
+            sample[Keys.labels3d.name] = self.load_labels_3d(scenario_path)
+        if Keys.pointcloud in self.keys:
+            sample[Keys.pointcloud.name] = self.load_pointcloud(scenario_path)
+        if Keys.images in self.keys:
+            sample[Keys.images.name] = self.load_images(scenario_path)
+        if Keys.map in self.keys:
+            sample[Keys.map.name] = self.load_map(scenario_path)
 
-        if self.transform and "images" in sample:
-            sample["images"] = [self.transform(image) for image in sample["images"]]
+        if self.transform and Keys.images.name in sample:
+            sample[Keys.images.name] = [self.transform(image) for image in sample[Keys.images.name]]
 
         return sample
 
@@ -95,12 +103,12 @@ class LOKIDataset(Dataset):
 
 
 # Example usage of the custom dataset and dataloader
-root_dir = "../../LOKI/"
-keys = ["odometry", "images"]
+# root_dir = "../../LOKI/"
+# keys = ["odometry", "images"]
 
-loki_dataset = LOKIDataset(root_dir=root_dir, keys=keys, transform=None)
-# sample = loki_dataset.__getitem__(0)
-sample = loki_dataset[0]
-print(len(sample))
+# loki_dataset = LOKIDataset(root_dir=root_dir, keys=keys, transform=None)
+# # sample = loki_dataset.__getitem__(0)
+# sample = loki_dataset[0]
+# print(len(sample))
 
-print("Loaded Successfully")
+# print("Loaded Successfully")
