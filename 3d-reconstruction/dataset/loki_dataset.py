@@ -99,6 +99,7 @@ root_dir = "../Datasets/loki_data/"
 keys = ["odometry", "images"]
 
 loki_dataset = LOKIDataset(root_dir=root_dir, keys=keys, transform=None)
-sample = loki_dataset.__getitem__(0)
+# sample = loki_dataset.__getitem__(0)
+sample = loki_dataset[0]
 
 print("Loaded Successfully")
