@@ -7,15 +7,59 @@ import pandas as pd
 from PIL import Image
 from glob import glob
 from torch.utils.data import Dataset
-from enum import Enum
 
-class Keys(Enum):
-    odometry = 1
-    labels2d = 2
-    labels3d = 3
-    pointcloud = 4
-    images = 5
-    map = 6
+
+class LOKIDatasetHandler:
+    """
+    Handles loading and accessing samples from the LOKI dataset.
+    """
+
+    def __init__(self, root_dir, keys=["pointcloud", "labels_3d"]):
+        """
+        Initializes the dataset handler.
+
+        Args:
+            root_dir (str): Root directory of the LOKI dataset.
+            keys (list, optional): Keys to load from the dataset. Defaults to ["pointcloud", "labels_3d"].
+        """
+        self.root_dir = root_dir
+        self.keys = keys
+        self.dataset = self._initialize_dataset()
+
+    def _initialize_dataset(self):
+        """
+        Initializes the LOKIDataset.
+
+        Returns:
+            LOKIDataset: Initialized dataset object.
+        """
+        if not os.path.isdir(self.root_dir):
+            raise ValueError(f"Provided root_dir '{self.root_dir}' is not a valid directory.")
+        return LOKIDataset(root_dir=self.root_dir, keys=self.keys)
+
+    def get_sample(self, index):
+        """
+        Retrieves a sample from the dataset by index.
+
+        Args:
+            index (int): Index of the sample to retrieve.
+
+        Returns:
+            dict: Sample containing pointcloud and labels_3d data.
+        """
+        if index < 0 or index >= len(self.dataset):
+            raise IndexError(f"Sample index {index} out of range. Dataset size: {len(self.dataset)}.")
+        return self.dataset[index]
+
+    def __len__(self):
+        """
+        Returns the number of samples in the dataset.
+
+        Returns:
+            int: Number of samples.
+        """
+        return len(self.dataset)
+
 
 class LOKIDataset(Dataset):
     def __init__(self, root_dir, keys=None, transform=None):
@@ -30,7 +74,7 @@ class LOKIDataset(Dataset):
         self.keys = (
             keys
             if keys is not None
-            else [key.name for key in Keys]
+            else ["odometry", "labels_2d", "labels_3d", "pointcloud", "images", "map"]
         )
         self.transform = transform
         self.scenarios = [
@@ -47,21 +91,21 @@ class LOKIDataset(Dataset):
         scenario_path = self.scenarios[idx]
         sample = {}
 
-        if Keys.odometry in self.keys:
-            sample[Keys.odometry.name] = self.load_odometry(scenario_path)
-        if Keys.labels2d in self.keys:
-            sample[Keys.labels2d.name] = self.load_labels_2d(scenario_path)
-        if Keys.labels3d in self.keys:
-            sample[Keys.labels3d.name] = self.load_labels_3d(scenario_path)
-        if Keys.pointcloud in self.keys:
-            sample[Keys.pointcloud.name] = self.load_pointcloud(scenario_path)
-        if Keys.images in self.keys:
-            sample[Keys.images.name] = self.load_images(scenario_path)
-        if Keys.map in self.keys:
-            sample[Keys.map.name] = self.load_map(scenario_path)
+        if "odometry" in self.keys:
+            sample["odometry"] = self.load_odometry(scenario_path)
+        if "labels_2d" in self.keys:
+            sample["labels_2d"] = self.load_labels_2d(scenario_path)
+        if "labels_3d" in self.keys:
+            sample["labels_3d"] = self.load_labels_3d(scenario_path)
+        if "pointcloud" in self.keys:
+            sample["pointcloud"] = self.load_pointcloud(scenario_path)
+        if "images" in self.keys:
+            sample["images"] = self.load_images(scenario_path)
+        if "map" in self.keys:
+            sample["map"] = self.load_map(scenario_path)
 
-        if self.transform and Keys.images.name in sample:
-            sample[Keys.images.name] = [self.transform(image) for image in sample[Keys.images.name]]
+        if self.transform and "images" in sample:
+            sample["images"] = [self.transform(image) for image in sample["images"]]
 
         return sample
 
@@ -101,14 +145,9 @@ class LOKIDataset(Dataset):
         plydata = plyfile.PlyData.read(file_path)
         return np.array([list(vertex) for vertex in plydata.elements[0]])
 
-
 # Example usage of the custom dataset and dataloader
-# root_dir = "../../LOKI/"
+# root_dir = "../Datasets/loki_data/"
 # keys = ["odometry", "images"]
-
 # loki_dataset = LOKIDataset(root_dir=root_dir, keys=keys, transform=None)
-# # sample = loki_dataset.__getitem__(0)
-# sample = loki_dataset[0]
-# print(len(sample))
-
+# sample = loki_dataset.__getitem__(0)
 # print("Loaded Successfully")
