@@ -1,5 +1,3 @@
-# main.py
-
 from dataset.loki_dataset import LOKIDatasetHandler
 from utilities.convert import convert_from_vertex_to_open3d_pcd
 from visualization.visualizer import Visualizer
@@ -70,12 +68,12 @@ def main():
         print("No pedestrian data found in this sample.")
         exit(1)
 
-    # Visualize
     visualizer = Visualizer()
     visualizer.add_point_cloud(pcd)
     visualizer.add_bounding_boxes(df_pedestrians, color=[0, 0, 1])
     visualizer.add_coordinate_axes(size=5.0, origin=[0, 0, 0])
-    visualizer.visualize(window_name='Point Cloud with Pedestrian Bounding Boxes')
+    pedestrian_pcds = visualizer.extract_pedestrian_pcds(pcd, df_pedestrians)
+    visualizer.visualize_pedestrians_only(window_name='Cropped Pedestrians', color=[1, 0, 0])
 
 
 if __name__ == "__main__":
