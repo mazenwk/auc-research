@@ -1,31 +1,33 @@
-#%%
-# Import libraries
-import pandas as pd
-import matplotlib.pyplot as plt
-#%%
-# Defining data for the dataframe
-data = {
-    'Basket': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'],
-    'Apples': [10, 20, 30, 56, 40, 40, 67, 47, 40, 4, 49, 52, 5, 56, 35, 45],
-    'Bananas': [15, 6, 3, 45, 67, 44, 45, 11, 14, 18, 13, 12, 1, 34, 12, 12]
-}
+# main.py
 
-# Creating the dataframe
-df = pd.DataFrame(data)
+import subprocess
+import sys
+import os
 
-df
-#%%
-# Calculate the sums
-sum_apples = df['Apples'].sum()
-sum_bananas = df['Bananas'].sum()
+"""
+!!!!!!!!!!!!!!CURRENTLY NOT WORKING - RUN FILE DIRECTLY FROM process_pedestrians.py!!!!!!!!!!!!!!
+"""
 
-# Create a bar chart
-plt.bar(['Apples', 'Bananas'], [sum_apples, sum_bananas], color=['red', 'blue'])
 
-# Set a title
-plt.title('Comparison of total Apples and Bananas')
+def main():
+    """
+    Entry point for the application. Parses command-line arguments and delegates to the processing script.
+    """
+    # Determine the path to the processing script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    processing_script = os.path.join(script_dir, 'pedestrians-pcds-cropping', 'process_pedestrians.py')
 
-# Show the plot
-plt.show()
+    if not os.path.exists(processing_script):
+        print(f"Processing script not found at {processing_script}")
+        sys.exit(1)
 
-# See DataSpell help at https://www.jetbrains.com/help/dataspell/
+    # Pass all command-line arguments to the processing script
+    try:
+        result = subprocess.run([sys.executable, processing_script] + sys.argv[1:], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred while running the processing script: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

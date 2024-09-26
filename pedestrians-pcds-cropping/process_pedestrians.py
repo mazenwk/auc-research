@@ -1,27 +1,59 @@
+# scripts/process_pedestrians.py
+
+import sys
+import argparse
 from dataset.dataset_manager import DatasetManager
 from processors.pointcloud_processor import PointCloudProcessor
 from processors.pedestrian_processor import PedestrianProcessor
 from visualization.visualizer import Visualizer
 
-# Configuration Parameters
-ROOT_DIR = "sample/"
-SAMPLE_IDX = 0
-THRESHOLD_MULTIPLIER = 0.5
 
-
-def main():
+def parse_arguments():
     """
-    Executes the data processing and visualization workflow.
-    """
+    Parses command-line arguments.
 
+    Returns:
+        argparse.Namespace: Parsed arguments.
+    """
+    parser = argparse.ArgumentParser(description="Process and visualize pedestrian point clouds.")
+    parser.add_argument(
+        '--root_dir',
+        type=str,
+        default='sample/',
+        help='Root directory of the dataset. Defaults to "sample/".'
+    )
+    parser.add_argument(
+        '--sample_idx',
+        type=int,
+        default=0,
+        help='Index of the sample to process. Defaults to 0.'
+    )
+    parser.add_argument(
+        '--threshold_multiplier',
+        type=float,
+        default=0.5,
+        help='Multiplier for setting the minimum point threshold based on the average. Defaults to 0.5.'
+    )
+    return parser.parse_args()
+
+
+def process_pedestrians(root_dir, sample_idx, threshold_multiplier):
+    """
+    Executes the pedestrian processing and visualization workflow.
+
+    Args:
+        root_dir (str): Root directory of the dataset.
+        sample_idx (int): Index of the sample to process.
+        threshold_multiplier (float): Multiplier for setting the minimum point threshold.
+    """
     # Initialize Managers and Processors
-    dataset_manager = DatasetManager(root_dir=ROOT_DIR)
+    dataset_manager = DatasetManager(root_dir=root_dir)
     pointcloud_processor = PointCloudProcessor()
-    pedestrian_processor = PedestrianProcessor(threshold_multiplier=THRESHOLD_MULTIPLIER)
+    pedestrian_processor = PedestrianProcessor(threshold_multiplier=threshold_multiplier)
     visualizer = Visualizer()
 
     # Retrieve Sample
-    sample = dataset_manager.retrieve_sample(SAMPLE_IDX)
+    sample = dataset_manager.retrieve_sample(sample_idx)
 
     # Extract Point Cloud and Labels
     raw_pcd = sample.get("pointcloud", [])[0]
@@ -43,7 +75,7 @@ def main():
 
     if not pedestrian_pcds:
         print("No pedestrian point clouds extracted.")
-        exit(1)
+        sys.exit(1)
 
     # Calculate Average Number of Points
     avg_points = pedestrian_processor.calculate_average_points(pedestrian_pcds)
@@ -68,4 +100,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_arguments()
+    process_pedestrians(args.root_dir, args.sample_idx, args.threshold_multiplier)
