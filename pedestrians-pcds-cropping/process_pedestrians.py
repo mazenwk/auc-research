@@ -40,8 +40,7 @@ def main():
     args = parse_arguments()
 
     pipeline = PedestrianProcessingPipeline(
-        # root_dir=args.root_dir,
-        root_dir=r"S:\researchlab\auc-research\auc-research\LOKI",
+        root_dir=args.root_dir,
         csv_path=args.csv_path,
         threshold_multiplier=args.threshold_multiplier
     )
@@ -64,4 +63,6 @@ def main():
 
 
 if __name__ == "__main__":
+    # TODO: SAVE CROPPED PEDESTRIAN PCD
+    # TODO: THREADING & PARALLEL PROCESSING
     main()
