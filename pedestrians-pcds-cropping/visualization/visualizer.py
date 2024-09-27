@@ -109,7 +109,8 @@ class Visualizer:
             mesh_show_back_face=False
         )
 
-    def visualize_pedestrians_only(self, window_name='Pedestrians Only', width=1280, height=720, color=[1, 0, 0]):
+    def visualize_pedestrians_only(self, window_name: object = 'Pedestrians Only', width: object = 1280, height: object = 720,
+                                   color: object = [1, 0, 0]) -> object:
         """
         Visualizes only the pedestrian point clouds.
 
@@ -141,3 +142,12 @@ class Visualizer:
             mesh_show_wireframe=False,
             mesh_show_back_face=False
         )
+
+    def clear_geometries(self):
+        """
+        Clears all geometries from the visualizer.
+        """
+        self.geometries = []
+        self.bounding_boxes = []
+        self.pedestrian_pcds = []
+        print("Visualizer geometries cleared.")

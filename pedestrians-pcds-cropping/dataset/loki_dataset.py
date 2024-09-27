@@ -51,6 +51,19 @@ class LOKIDatasetHandler:
             raise IndexError(f"Sample index {index} out of range. Dataset size: {len(self.dataset)}.")
         return self.dataset[index]
 
+    def get_sample_by_id(self, scenario_id, frame_id):
+        """
+        Retrieves a sample from the dataset by index.
+
+        Args:
+            scenario_id (int): ID of the scenario to retrieve frame data from.
+            frame_id (int): ID of the frame to retrieve data from.
+
+        Returns:
+            dict: Sample containing pointcloud and labels_3d data.
+        """
+        return self.dataset.get_by_id(scenario_id, frame_id)
+
     def __len__(self):
         """
         Returns the number of samples in the dataset.
@@ -109,30 +122,101 @@ class LOKIDataset(Dataset):
 
         return sample
 
-    def load_odometry(self, scenario_path):
-        odometry_files = sorted(glob(os.path.join(scenario_path, "odom_*.txt")))
+    def get_by_id(self, scenario_id, frame_id):
+        if torch.is_tensor(scenario_id):
+            scenario_id = scenario_id.tolist()
+
+        if torch.is_tensor(frame_id):
+            frame_id = frame_id.tolist()
+
+        matching_scenario_paths = [
+            scenario_path for scenario_path in self.scenarios
+            if f'scenario_{scenario_id}' in os.path.basename(scenario_path)
+        ]
+
+        scenario_path = matching_scenario_paths[0]
+
+        sample = {}
+
+        if "odometry" in self.keys:
+            sample["odometry"] = self.load_odometry(scenario_path, frame_id)
+        if "labels_2d" in self.keys:
+            sample["labels_2d"] = self.load_labels_2d(scenario_path, frame_id)
+        if "labels_3d" in self.keys:
+            sample["labels_3d"] = self.load_labels_3d(scenario_path, frame_id)
+        if "pointcloud" in self.keys:
+            sample["pointcloud"] = self.load_pointcloud(scenario_path, frame_id)
+        if "images" in self.keys:
+            sample["images"] = self.load_images(scenario_path, frame_id)
+        if "map" in self.keys:
+            sample["map"] = self.load_map(scenario_path)
+
+        if self.transform and "images" in sample:
+            sample["images"] = [self.transform(image) for image in sample["images"]]
+
+        return sample
+
+    @staticmethod
+    def load_odometry(scenario_path, frame_id=None):
+        # Get all odom files or filter for a specific frame if frame_id is provided
+        if frame_id:
+            # If frame_id is provided, look for a specific odometry file like 'odom_0024.txt'
+            odometry_files = glob(os.path.join(scenario_path, f"odom_{frame_id}.txt"))
+        else:
+            # Otherwise, load all odometry files
+            odometry_files = sorted(glob(os.path.join(scenario_path, "odom_*.txt")))
+
+        # Load odometry data from the selected files
         odometry_data = [
             pd.read_csv(f, header=None, dtype=float).values for f in odometry_files
         ]
+
         return odometry_data
 
-    def load_labels_2d(self, scenario_path):
-        label2d_files = sorted(glob(os.path.join(scenario_path, "label2d_*.json")))
+    @staticmethod
+    def load_labels_2d(scenario_path, frame_id=None):
+        # Get all label2d files or filter for a specific frame if frame_id is provided
+        if frame_id:
+            label2d_files = glob(os.path.join(scenario_path, f"label2d_{frame_id}.json"))
+        else:
+            label2d_files = sorted(glob(os.path.join(scenario_path, "label2d_*.json")))
+
+        # Load label 2d data from the selected files
         labels_2d = [json.load(open(f)) for f in label2d_files]
         return labels_2d
 
-    def load_labels_3d(self, scenario_path):
-        label3d_files = sorted(glob(os.path.join(scenario_path, "label3d_*.txt")))
+    @staticmethod
+    def load_labels_3d(scenario_path, frame_id=None):
+        # Get all label3d files or filter for a specific frame if frame_id is provided
+        if frame_id:
+            label3d_files = glob(os.path.join(scenario_path, f"label3d_{frame_id}.txt"))
+        else:
+            label3d_files = sorted(glob(os.path.join(scenario_path, "label3d_*.txt")))
+
+        # Load label 3d data from the selected files
         labels_3d = [pd.read_csv(f).values for f in label3d_files]
         return labels_3d
 
-    def load_pointcloud(self, scenario_path):
-        pointcloud_files = sorted(glob(os.path.join(scenario_path, "pc_*.ply")))
+    def load_pointcloud(self, scenario_path, frame_id=None):
+        # Get all pointcloud files or filter for a specific frame if frame_id is provided
+        if frame_id:
+            pointcloud_files = glob(os.path.join(scenario_path, f"pc_{frame_id}.ply"))
+        else:
+            pointcloud_files = sorted(glob(os.path.join(scenario_path, "pc_*.ply")))
+
+        # Load pointcloud data from the selected files
         pointcloud_data = [self.load_ply(f) for f in pointcloud_files]
         return pointcloud_data
 
-    def load_images(self, scenario_path):
-        image_files = sorted(glob(os.path.join(scenario_path, "image_*.png")))
+    @staticmethod
+    def load_images(scenario_path, frame_id=None):
+        # Get all image files or filter for a specific frame if frame_id is provided
+        if frame_id:
+            image_files = glob(os.path.join(scenario_path, f"image_{frame_id}.png"))
+        else:
+            image_files = sorted(glob(os.path.join(scenario_path, "image_*.png")))
+
+        # Load images from the selected files
         images = [Image.open(f).convert("RGB") for f in image_files]
         return images
 
