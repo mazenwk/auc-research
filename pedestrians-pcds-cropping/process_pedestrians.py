@@ -64,7 +64,13 @@ def main():
         valid_frame_ids = pipeline.verify_frames(valid_scenario_ids, frame_ids)
 
         # Process all valid frames
-        pipeline.process_all_frames(valid_scenario_ids, valid_frame_ids)
+        peds_dict = pipeline.process_all_frames_and_crop_pedestrians(valid_scenario_ids, valid_frame_ids)
+        import open3d as o3d
+        for key, pcd in peds_dict.items():
+            o3d.visualization.draw_geometries([pcd])
+
+        pipeline.save_pedestrian_pcds(peds_dict, './temp')
+
     except KeyboardInterrupt:
         print("\nOperation cancelled by user. Exiting gracefully...")
         sys.exit(0)

@@ -1,8 +1,10 @@
 ﻿import os
 import pandas as pd
+import numpy as np
 from glob import glob
 from itertools import groupby
 from operator import itemgetter
+import open3d as o3d
 
 from dataset.loki_dataset import LOKIDatasetHandler
 from processors.pointcloud_processor import PointCloudProcessor
@@ -111,14 +113,21 @@ class PedestrianProcessingPipeline:
 
         return sorted(valid_frame_ids)
 
-    def process_all_frames(self, valid_scenario_ids, valid_frame_ids):
+    def process_all_frames_and_crop_pedestrians(self, valid_scenario_ids, valid_frame_ids):
         """
-        Processes all valid scenarios and frames.
+        Processes all valid scenarios and frames, crops pedestrian point clouds,
+        and returns a dictionary with scenario, frame, and pedestrian IDs as keys, and point clouds as values.
 
         Args:
             valid_scenario_ids (list): List of valid scenario IDs.
             valid_frame_ids (list): List of valid frame IDs.
+
+        Returns:
+            dict: Dictionary where keys are a combination of scenario_id, frame_id, and pedestrian_id, 
+                and values are the cropped pedestrian point clouds.
         """
+        pedestrian_pcd_dict = {}
+
         for scenario_id in valid_scenario_ids:
             for frame_id in valid_frame_ids:
                 print(f"\nProcessing Scenario: {scenario_id}, Frame: {frame_id}")
@@ -144,17 +153,11 @@ class PedestrianProcessingPipeline:
                 # Extract Pedestrian DataFrame
                 df_pedestrians = self.pedestrian_processor.extract_pedestrian_df(labels3d_ndarray)
 
-                # Initialize Visualizer and Add Initial Geometries
-                self.visualizer.add_point_cloud(cleaned_pcd)
-                self.visualizer.add_bounding_boxes(df_pedestrians, color=[0, 0, 1])
-                self.visualizer.add_coordinate_axes(size=5.0, origin=[0, 0, 0])
-
                 # Extract Pedestrian Point Clouds
                 pedestrian_pcds = self.visualizer.extract_pedestrian_pcds(cleaned_pcd, df_pedestrians)
 
                 if not pedestrian_pcds:
                     print("No pedestrian point clouds extracted.")
-                    self.visualizer.clear_geometries()
                     continue
 
                 # Calculate Average Number of Points
@@ -168,21 +171,53 @@ class PedestrianProcessingPipeline:
                     df_pedestrians, pedestrian_pcds, min_threshold
                 )
 
-                # Update Visualizer with Filtered Data
-                self.visualizer.clear_bounding_boxes()
-                print("Updating visualizer...")
-                self.visualizer.add_bounding_boxes(df_pedestrians_filtered, color=[0, 0, 1])
-                self.visualizer.pedestrian_pcds = pedestrian_pcds_filtered
+                # Recenter each pedestrian point cloud and add it to the dictionary
+                for idx, pcd in enumerate(pedestrian_pcds_filtered):
+                    pedestrian_id = df_pedestrians_filtered.iloc[idx].get("pedestrian_id", idx)
 
-                # Visualize Filtered Pedestrians
-                print("Visualizing...")
-                self.visualizer.visualize_pedestrians_only(
-                    window_name=f'Cropped Pedestrians - {scenario_id}_{frame_id}', color=[1, 0, 0])
+                    # Recenter the point cloud (adjust for the pedestrian's local position)
+                    points = np.asarray(pcd.points)
+                    centroid = np.mean(points, axis=0)
+                    points_recentered = points - centroid
+                    pcd.points = o3d.utility.Vector3dVector(points_recentered)
 
-                # Clear geometries for the next frame
-                self.visualizer.clear_geometries()
+                    # Create a unique key for each pedestrian (scenario_id_frame_id_pedestrian_id)
+                    pedestrian_key = f"{scenario_id}_{frame_id}_ped_{pedestrian_id}"
+                    pedestrian_pcd_dict[pedestrian_key] = pcd
 
         print("\nProcessing completed.")
+        return pedestrian_pcd_dict
+    
+    import os
+
+    def save_pedestrian_pcds(self, pcd_dict, save_dir):
+        """
+        Saves the pedestrian point clouds in the provided dictionary as .ply files.
+
+        Args:
+            pcd_dict (dict): Dictionary where keys are a combination of scenario_id, frame_id, and pedestrian_id,
+                            and values are the cropped pedestrian point clouds.
+            save_dir (str): Directory where the .ply files will be saved.
+        """
+        # Create the save directory if it doesn't exist
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
+        for key, pcd in pcd_dict.items():
+            # Construct the filename
+            filename = f"{key}.ply"
+            filepath = os.path.join(save_dir, filename)
+
+            # Save the point cloud to a .ply file
+            try:
+                o3d.io.write_point_cloud(filepath, pcd)
+                print(f"Saved: {filepath}")
+            except Exception as e:
+                print(f"Error saving {filename}: {e}")
+
+        print("All pedestrian point clouds have been saved.")
+
+
 
     # ----------------------- Helper Methods -----------------------
 
