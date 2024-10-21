@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 
 from pedestrian_processing_pipeline import PedestrianProcessingPipeline
 
@@ -15,7 +16,7 @@ def parse_arguments():
     parser.add_argument(
         '--root_dir',
         type=str,
-        default='sample/',
+        default='./sample',
         help='Root directory of the dataset. Defaults to "data/".'
     )
     parser.add_argument(
@@ -38,10 +39,17 @@ def main():
     Entry point for the application. Parses command-line arguments and invokes processing functions.
     """
     args = parse_arguments()
+    root_path = args.root_dir
+    if root_path == './sample':
+        root_path = os.path.abspath(os.path.join(os.getcwd(), 'pedestrians-pcds-cropping', 'sample'))
+    
+    csv_path = args.csv_path
+    if csv_path == 'loki.csv':
+        csv_path = os.path.abspath(os.path.join(os.getcwd(), 'pedestrians-pcds-cropping', 'loki.csv'))
 
     pipeline = PedestrianProcessingPipeline(
-        root_dir=args.root_dir,
-        csv_path=args.csv_path,
+        root_dir=root_path,
+        csv_path=csv_path,
         threshold_multiplier=args.threshold_multiplier
     )
 

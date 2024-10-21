@@ -6,7 +6,7 @@ class PedestrianProcessor:
     Processes pedestrian data, including extraction, averaging, thresholding, and filtering.
     """
 
-    def __init__(self, threshold_multiplier=0.5):
+    def __init__(self, minimum_point_threshold = 10, points_threshold_multiplier=0.5):
         """
         Initializes the PedestrianProcessor with a threshold multiplier.
 
@@ -14,7 +14,8 @@ class PedestrianProcessor:
             threshold_multiplier (float, optional): Multiplier to set the minimum point threshold based on the average
             Defaults to 0.5.
         """
-        self.threshold_multiplier = threshold_multiplier
+        self.minimum_point_threshold = minimum_point_threshold
+        self.points_threshold_multiplier = points_threshold_multiplier
         self.column_names = [
             "labels", "track_id", "stationary", "pos_x", "pos_y", "pos_z",
             "dim_x", "dim_y", "dim_z", "yaw", "vehicle_state",
@@ -55,21 +56,32 @@ class PedestrianProcessor:
 
         return df_pedestrians
 
-    @staticmethod
-    def calculate_average_points(pedestrian_pcds):
+    def calculate_average_points(self, pedestrian_pcds):
         """
-        Calculates the average number of points across all pedestrian point clouds.
+        Calculates the average number of points across all pedestrian point clouds, 
+        excluding those with fewer points than the minimum threshold.
 
         Args:
             pedestrian_pcds (list of o3d.geometry.PointCloud): List of pedestrian PCDs.
+            min_threshold (int): Minimum number of points for a PCD to be considered in the average.
 
         Returns:
-            float: The average number of points per pedestrian PCD.
+            float: The average number of points per pedestrian PCD (above the threshold).
         """
-        total_points = sum(len(pcd_ped.points) for pcd_ped in pedestrian_pcds)
-        avg_points = total_points / len(pedestrian_pcds) if pedestrian_pcds else 0
-        print(f"Average number of points per pedestrian PCD: {avg_points:.2f}")
+        filtered_pcds = [pcd_ped for pcd_ped in pedestrian_pcds if len(pcd_ped.points) >= self.minimum_point_threshold]
+        
+        if not filtered_pcds:
+            print("No pedestrian PCDs meet the minimum threshold.")
+            return 0
+
+        total_points = sum(len(pcd_ped.points) for pcd_ped in filtered_pcds)
+        avg_points = total_points / len(filtered_pcds) if filtered_pcds else 0
+        if avg_points > 20:
+            avg_points = 20
+            
+        print(f"Average number of points per pedestrian PCD (above threshold): {avg_points:.2f}")
         return avg_points
+
 
     def set_min_point_threshold(self, avg_points):
         """
@@ -81,7 +93,7 @@ class PedestrianProcessor:
         Returns:
             float: The minimum point threshold.
         """
-        min_threshold = avg_points * self.threshold_multiplier
+        min_threshold = avg_points * self.points_threshold_multiplier
         print(f"Minimum point threshold set to: {min_threshold:.2f}")
         return min_threshold
 

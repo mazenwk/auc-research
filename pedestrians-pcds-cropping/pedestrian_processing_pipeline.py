@@ -31,7 +31,7 @@ class PedestrianProcessingPipeline:
         # Initialize Handlers and Processors
         self.dataset_handler = LOKIDatasetHandler(root_dir=self.root_dir, keys=["pointcloud", "labels_3d"])
         self.pointcloud_processor = PointCloudProcessor()
-        self.pedestrian_processor = PedestrianProcessor(threshold_multiplier=self.threshold_multiplier)
+        self.pedestrian_processor = PedestrianProcessor(points_threshold_multiplier=self.threshold_multiplier)
         self.visualizer = Visualizer()
 
     def load_scenario_frame_ids(self):
