@@ -1,4 +1,5 @@
 ﻿import pandas as pd
+import numpy as np
 
 
 class PedestrianProcessor:
@@ -6,13 +7,12 @@ class PedestrianProcessor:
     Processes pedestrian data, including extraction, averaging, thresholding, and filtering.
     """
 
-    def __init__(self, minimum_point_threshold = 10, points_threshold_multiplier=0.5):
+    def __init__(self, minimum_point_threshold=10, points_threshold_multiplier=0.5):
         """
         Initializes the PedestrianProcessor with a threshold multiplier.
 
-        Args:
-            threshold_multiplier (float, optional): Multiplier to set the minimum point threshold based on the average
-            Defaults to 0.5.
+        Args: points_threshold_multiplier (float, optional): Multiplier to set the minimum point threshold based on
+        the average Defaults to 0.5.
         """
         self.minimum_point_threshold = minimum_point_threshold
         self.points_threshold_multiplier = points_threshold_multiplier
@@ -58,77 +58,66 @@ class PedestrianProcessor:
 
     def calculate_average_points(self, pedestrian_pcds):
         """
-        Calculates the average number of points across all pedestrian point clouds, 
-        excluding those with fewer points than the minimum threshold.
+        Calculates the average number of points per pedestrian after removing those with very low point counts.
 
         Args:
-            pedestrian_pcds (list of o3d.geometry.PointCloud): List of pedestrian PCDs.
-            min_threshold (int): Minimum number of points for a PCD to be considered in the average.
+            pedestrian_pcds (list of o3d.geometry.PointCloud): List of pedestrian point clouds.
 
         Returns:
-            float: The average number of points per pedestrian PCD (above the threshold).
+            float: Average number of points per pedestrian after filtering.
         """
-        filtered_pcds = [pcd_ped for pcd_ped in pedestrian_pcds if len(pcd_ped.points) >= self.minimum_point_threshold]
-        
-        if not filtered_pcds:
-            print("No pedestrian PCDs meet the minimum threshold.")
-            return 0
+        # Filter out pedestrians with points less than min_point_count
+        filtered_pcds = [pcd for pcd in pedestrian_pcds if len(np.asarray(pcd.points)) >= self.minimum_point_threshold]
+        removed = len(pedestrian_pcds) - len(filtered_pcds)
 
-        total_points = sum(len(pcd_ped.points) for pcd_ped in filtered_pcds)
-        avg_points = total_points / len(filtered_pcds) if filtered_pcds else 0
-        if avg_points > 20:
-            avg_points = 20
-            
-        print(f"Average number of points per pedestrian PCD (above threshold): {avg_points:.2f}")
-        return avg_points
+        if removed > 0:
+            print(f"Removed {removed} pedestrians with fewer than {self.minimum_point_threshold} points.")
 
+        # Calculate average number of points from filtered pedestrians
+        counts = [len(np.asarray(pcd.points)) for pcd in filtered_pcds]
+        avg = sum(counts) / len(counts) if counts else 0
 
-    def set_min_point_threshold(self, avg_points):
+        print(f"Calculated average points per pedestrian: {avg:.2f}")
+
+        return avg
+
+    def set_min_point_threshold(self, average_points):
         """
-        Sets the minimum point threshold based on the average number of points.
+        Sets the minimum point threshold based on the average points and multiplier.
 
         Args:
-            avg_points (float): The average number of points per pedestrian PCD.
+            average_points (float): The average number of points per pedestrian.
 
         Returns:
-            float: The minimum point threshold.
+            float: The calculated minimum point threshold.
         """
-        min_threshold = avg_points * self.points_threshold_multiplier
-        print(f"Minimum point threshold set to: {min_threshold:.2f}")
+        min_threshold = average_points * self.points_threshold_multiplier
+        print(f"Minimum point threshold set to: {min_threshold:.2f} (Multiplier: {self.points_threshold_multiplier})")
         return min_threshold
 
-    @staticmethod
-    def filter_pedestrians(df_pedestrians, pedestrian_pcds, min_threshold):
+    def filter_pedestrians(self, df_pedestrians, pedestrian_pcds, min_threshold):
         """
-        Filters out pedestrians with point counts below the minimum threshold.
+        Filters pedestrians based on the minimum point threshold.
 
         Args:
-            df_pedestrians (pd.DataFrame): DataFrame containing pedestrian information.
-            pedestrian_pcds (list of o3d.geometry.PointCloud): List of pedestrian PCDs.
-            min_threshold (float): The minimum number of points required.
+            df_pedestrians (pd.DataFrame): DataFrame containing pedestrian data.
+            pedestrian_pcds (list of o3d.geometry.PointCloud): List of pedestrian point clouds.
+            min_threshold (float): The minimum number of points required to keep a pedestrian.
 
         Returns:
             tuple:
-                pd.DataFrame: Filtered pedestrian DataFrame.
-                list of o3d.geometry.PointCloud: Filtered list of pedestrian PCDs.
-
-        Raises:
-            SystemExit: If no pedestrians meet the threshold.
+                pd.DataFrame: Filtered DataFrame of pedestrians.
+                list of o3d.geometry.PointCloud: Filtered list of pedestrian point clouds.
         """
-        pedestrian_pcds_filtered = []
-        df_pedestrians_filtered = pd.DataFrame(columns=df_pedestrians.columns)
+        print(f"Filtering pedestrians with fewer than {min_threshold:.2f} points.")
 
-        for (idx, ped_data), pcd_ped in zip(df_pedestrians.iterrows(), pedestrian_pcds):
-            point_count = len(pcd_ped.points)
-            if point_count >= min_threshold:
-                pedestrian_pcds_filtered.append(pcd_ped)
-                df_pedestrians_filtered = pd.concat([df_pedestrians_filtered, ped_data.to_frame().T], ignore_index=True)
-            else:
-                print(f"Removing pedestrian {ped_data['track_id']} with only {point_count} points.")
+        # Identify indices of pedestrians to keep
+        indices_to_keep = [idx for idx, pcd in enumerate(pedestrian_pcds) if len(np.asarray(pcd.points)) >= min_threshold]
 
-        if not pedestrian_pcds_filtered:
-            print("No pedestrians meet the minimum point threshold.")
-            exit(1)
+        # Filter DataFrame and point clouds
+        df_filtered = df_pedestrians.iloc[indices_to_keep].reset_index(drop=True)
+        pcds_filtered = [pedestrian_pcds[idx] for idx in indices_to_keep]
 
-        print(f"Number of pedestrians after filtering: {len(pedestrian_pcds_filtered)}")
-        return df_pedestrians_filtered, pedestrian_pcds_filtered
+        print(f"Filtered down to {len(pcds_filtered)} pedestrians after applying threshold.")
+
+        return df_filtered, pcds_filtered

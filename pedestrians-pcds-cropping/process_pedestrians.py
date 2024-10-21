@@ -17,19 +17,19 @@ def parse_arguments():
         '--root_dir',
         type=str,
         default='./sample',
-        help='Root directory of the dataset. Defaults to "data/".'
+        help='Root directory of the dataset. Defaults to "./data".'
     )
     parser.add_argument(
         '--csv_path',
         type=str,
-        default='loki.csv',
-        help='Path to the CSV file containing pedestrian data. Defaults to "pedestrians.csv".'
+        default='./loki.csv',
+        help='Path to the CSV file containing pedestrian data. Defaults to "./loki.csv".'
     )
     parser.add_argument(
         '--threshold_multiplier',
         type=float,
-        default=0.5,
-        help='Multiplier for setting the minimum point threshold based on the average. Defaults to 0.5.'
+        default=0.3,
+        help='Multiplier for setting the minimum point threshold based on the average. Defaults to 0.3.'
     )
     return parser.parse_args()
 
@@ -39,13 +39,10 @@ def main():
     Entry point for the application. Parses command-line arguments and invokes processing functions.
     """
     args = parse_arguments()
-    root_path = args.root_dir
-    if root_path == './sample':
-        root_path = os.path.abspath(os.path.join(os.getcwd(), 'pedestrians-pcds-cropping', 'sample'))
-    
+    root_path = os.path.normpath(os.path.abspath(args.root_dir))
+
     csv_path = args.csv_path
-    if csv_path == 'loki.csv':
-        csv_path = os.path.abspath(os.path.join(os.getcwd(), 'pedestrians-pcds-cropping', 'loki.csv'))
+    csv_path = os.path.normpath(os.path.abspath(csv_path))
 
     pipeline = PedestrianProcessingPipeline(
         root_dir=root_path,
@@ -63,13 +60,8 @@ def main():
         # Verify frames
         valid_frame_ids = pipeline.verify_frames(valid_scenario_ids, frame_ids)
 
-        # Process all valid frames
-        peds_dict = pipeline.process_all_frames_and_crop_pedestrians(valid_scenario_ids, valid_frame_ids)
-        import open3d as o3d
-        for key, pcd in peds_dict.items():
-            o3d.visualization.draw_geometries([pcd])
-
-        pipeline.save_pedestrian_pcds(peds_dict, './temp')
+        # Process all valid frames & save pcds
+        pipeline.process_all_frames_and_crop_pedestrians(valid_scenario_ids, valid_frame_ids)
 
     except KeyboardInterrupt:
         print("\nOperation cancelled by user. Exiting gracefully...")

@@ -22,8 +22,13 @@ def main():
         sys.exit(1)
 
     # Pass all command-line arguments to the processing script
+    args = [
+        # ['--root_dir', r'./pedestrians-pcds-cropping/sample/'],
+        ['--root_dir', r'./LOKI/'],
+        ['--csv_path', r'./pedestrians-pcds-cropping/loki.csv']
+    ]
     try:
-        result = subprocess.run([sys.executable, processing_script] + sys.argv[1:], check=True)
+        result = subprocess.run([sys.executable, processing_script] + sys.argv[1:] + args[0] + args[1], check=True)
     except subprocess.CalledProcessError as e:
         print(f"An error occurred while running the processing script: {e}")
         sys.exit(1)
