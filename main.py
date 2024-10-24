@@ -18,7 +18,8 @@ def main():
     args = [
         # ['--root_dir', r'./pedestrians-pcds-cropping/sample/'],
         ['--root_dir', r'./LOKI/'],
-        ['--csv_path', r'./pedestrians-pcds-cropping/loki.csv']
+        ['--csv_path', r'./pedestrians-pcds-cropping/loki.csv'],
+        ['--threshold_multiplier', 0.3]
     ]
     try:
         result = subprocess.run([sys.executable, processing_script] + sys.argv[1:] + args[0] + args[1], check=True)

@@ -145,10 +145,6 @@ class PedestrianProcessingPipeline:
                 if raw_pcd is None or labels3d_ndarray is None:
                     continue
 
-                # Preprocess Point Cloud
-                cleaned_pcd = self.pointcloud_processor.preprocess_pcd(raw_pcd)
-                print(f"Preprocessed point cloud for Scenario: {scenario_id}, Frame: {frame_id}")
-
                 # Extract Pedestrian DataFrame
                 df_pedestrians = self.pedestrian_processor.extract_pedestrian_df(labels3d_ndarray)
                 print(f"Extracted {len(df_pedestrians)} pedestrians in Scenario: {scenario_id}, Frame: {frame_id}")
@@ -156,6 +152,10 @@ class PedestrianProcessingPipeline:
                 if df_pedestrians.empty:
                     print(f"No pedestrians found in Scenario: {scenario_id}, Frame: {frame_id}.")
                     continue
+
+                # Preprocess Point Cloud
+                cleaned_pcd = self.pointcloud_processor.preprocess_pcd(raw_pcd)
+                print(f"Preprocessed point cloud for Scenario: {scenario_id}, Frame: {frame_id}")
 
                 # Extract Pedestrian Point Clouds
                 pedestrian_pcds = self.visualizer.extract_pedestrian_pcds(cleaned_pcd, df_pedestrians)

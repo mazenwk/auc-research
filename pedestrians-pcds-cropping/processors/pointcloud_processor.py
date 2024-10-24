@@ -7,12 +7,12 @@ class PointCloudProcessor:
     Handles preprocessing of point clouds, including conversion, downsampling, and outlier removal.
     """
 
-    def __init__(self, voxel_size=0.02, nb_neighbors=20, std_ratio=2.0):
+    def __init__(self, voxel_size=0.05, nb_neighbors=20, std_ratio=2.0):
         """
         Initializes the PointCloudProcessor with specified parameters.
 
         Args:
-            voxel_size (float, optional): Voxel size for downsampling. Defaults to 0.02.
+            voxel_size (float, optional): Voxel size for downsampling. Defaults to 0.05.
             nb_neighbors (int, optional): Number of neighbors for statistical outlier removal. Defaults to 20.
             std_ratio (float, optional): Standard deviation ratio for statistical outlier removal. Defaults to 2.0.
         """
