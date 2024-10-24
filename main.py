@@ -1,13 +1,6 @@
-# main.py
-
 import subprocess
 import sys
 import os
-
-"""
-!!!!!!!!!!!!!!CURRENTLY NOT WORKING - RUN FILE DIRECTLY FROM process_pedestrians.py!!!!!!!!!!!!!!
-"""
-
 
 def main():
     """
