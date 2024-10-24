@@ -40,9 +40,7 @@ def main():
     """
     args = parse_arguments()
     root_path = os.path.normpath(os.path.abspath(args.root_dir))
-
-    csv_path = args.csv_path
-    csv_path = os.path.normpath(os.path.abspath(csv_path))
+    csv_path = os.path.normpath(os.path.abspath(args.csv_path))
 
     pipeline = PedestrianProcessingPipeline(
         root_dir=root_path,
